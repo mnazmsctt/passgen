@@ -1,81 +1,103 @@
 #!/usr/bin/env python3
 """
-passgen - Simple & Strong Password Generator
+passgen-pro - Password Generator CLI yang Keren
 """
 
 import typer
 import random
 import string
 import pyperclip
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import track
 from typing import Optional
 
-app = typer.Typer(help="🔐 passgen - Password Generator CLI")
+console = Console()
+app = typer.Typer(help="🔐 passgen-pro - Password Generator Keren")
 
 def generate_password(
     length: int = 16,
     uppercase: bool = True,
     lowercase: bool = True,
     digits: bool = True,
-    symbols: bool = True
+    symbols: bool = True,
+    passphrase: bool = False
 ) -> str:
+    if passphrase:
+        # Simple word list untuk passphrase
+        words = ["apple", "banana", "mountain", "river", "sunset", "guitar", "thunder", "ocean", "forest", "dragon"]
+        return "-".join(random.choice(words) for _ in range(4))
+    
     characters = ""
     if uppercase: characters += string.ascii_uppercase
     if lowercase: characters += string.ascii_lowercase
     if digits: characters += string.digits
     if symbols: characters += "!@#$%^&*()_+-=[]{}|;:,.<>/?"
 
-    if not characters:
-        characters = string.ascii_letters + string.digits
+    return ''.join(random.choice(characters) for _ in range(length))
 
-    password = ''.join(random.choice(characters) for _ in range(length))
-    return password
+
+def password_strength(password: str) -> tuple[str, str]:
+    score = 0
+    if len(password) >= 16: score += 3
+    elif len(password) >= 12: score += 2
+    if any(c.isupper() for c in password): score += 1
+    if any(c.islower() for c in password): score += 1
+    if any(c.isdigit() for c in password): score += 1
+    if any(c in "!@#$%^&*" for c in password): score += 1
+
+    if score >= 6:  return "🟢 SANGAT KUAT", "green"
+    elif score >= 4: return "🟡 KUAT", "yellow"
+    else:            return "🔴 LEMAH", "red"
+
 
 @app.command()
 def gen(
     length: int = typer.Option(16, "--length", "-l", help="Panjang password"),
-    no_upper: bool = typer.Option(False, "--no-upper", help="Tanpa huruf besar"),
-    no_lower: bool = typer.Option(False, "--no-lower", help="Tanpa huruf kecil"),
-    no_digit: bool = typer.Option(False, "--no-digit", help="Tanpa angka"),
-    no_symbol: bool = typer.Option(False, "--no-symbol", help="Tanpa simbol"),
     amount: int = typer.Option(1, "--amount", "-a", help="Jumlah password"),
-    copy: bool = typer.Option(True, "--copy/--no-copy", help="Copy ke clipboard"),
+    no_upper: bool = typer.Option(False, "--no-upper"),
+    no_lower: bool = typer.Option(False, "--no-lower"),
+    no_digit: bool = typer.Option(False, "--no-digit"),
+    no_symbol: bool = typer.Option(False, "--no-symbol"),
+    passphrase: bool = typer.Option(False, "--passphrase", "-p", help="Generate passphrase (kata-kata)"),
+    copy: bool = typer.Option(True, "--copy/--no-copy"),
 ):
-    """Generate password acak"""
+    """Generate password keren"""
     
+    console.print(Panel.fit("[bold cyan]🔐 PASSGEN PRO[/bold cyan]", border_style="cyan"))
+
     for i in range(amount):
         password = generate_password(
             length=length,
             uppercase=not no_upper,
             lowercase=not no_lower,
             digits=not no_digit,
-            symbols=not no_symbol
+            symbols=not no_symbol,
+            passphrase=passphrase
         )
-        
-        typer.secho(f"🔑 {password}", fg=typer.colors.BRIGHT_GREEN)
+
+        strength_text, color = password_strength(password)
+
+        console.print(f"🔑 [bold]{password}[/bold]")
+        console.print(f"   {strength_text}  •  {len(password)} karakter", style=color)
         
         if copy and i == 0 and amount == 1:
             try:
                 pyperclip.copy(password)
-                typer.secho("📋 Password sudah dicopy ke clipboard!", fg=typer.colors.YELLOW)
-            except Exception:
-                typer.secho("⚠️  Tidak bisa copy ke clipboard (xclip/wl-clipboard belum terinstall)", 
-                           fg=typer.colors.YELLOW)
-@app.command()
-def strength(password: str = typer.Argument(..., help="Password yang mau dicek kekuatannya")):
-    """Cek kekuatan password"""
-    score = 0
-    if len(password) >= 12: score += 2
-    if any(c.isupper() for c in password): score += 1
-    if any(c.islower() for c in password): score += 1
-    if any(c.isdigit() for c in password): score += 1
-    if any(c in "!@#$%^&*()_+" for c in password): score += 1
+                console.print("   📋 Password sudah dicopy ke clipboard!", style="yellow")
+            except:
+                console.print("   ⚠️  Clipboard tidak tersedia", style="yellow")
 
-    if score >= 5:
-        typer.secho("🟢 Sangat Kuat", fg=typer.colors.GREEN)
-    elif score >= 3:
-        typer.secho("🟡 Cukup Kuat", fg=typer.colors.YELLOW)
-    else:
-        typer.secho("🔴 Lemah", fg=typer.colors.RED)
+        if amount > 1:
+            console.print("")
+
+
+@app.command()
+def strength(password: str = typer.Argument(..., help="Password yang mau dicek")):
+    """Cek kekuatan password"""
+    strength_text, color = password_strength(password)
+    console.print(Panel(f"[bold]{password}[/bold]\n\nKekuatan: [{color}]{strength_text}[/{color}]"))
+
 
 if __name__ == "__main__":
     app()
