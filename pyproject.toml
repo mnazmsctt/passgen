@@ -1,0 +1,15 @@
+[project]
+name = "passgen"
+version = "0.1.0"
+description = "CLI Password Generator yang simpel dan powerful"
+authors = [{ name = "nazmifirdaus", email = "nazmifurdaus@email.com" }]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+    "typer[all]>=0.9.0",
+    "pyperclip>=1.8.0",  # untuk copy ke clipboard
+]
+
+[project.scripts]
+passgen = "passgen.cli:app"
