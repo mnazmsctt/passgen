@@ -54,9 +54,12 @@ def gen(
         typer.secho(f"🔑 {password}", fg=typer.colors.BRIGHT_GREEN)
         
         if copy and i == 0 and amount == 1:
-            pyperclip.copy(password)
-            typer.secho("📋 Password sudah dicopy ke clipboard!", fg=typer.colors.YELLOW)
-
+            try:
+                pyperclip.copy(password)
+                typer.secho("📋 Password sudah dicopy ke clipboard!", fg=typer.colors.YELLOW)
+            except Exception:
+                typer.secho("⚠️  Tidak bisa copy ke clipboard (xclip/wl-clipboard belum terinstall)", 
+                           fg=typer.colors.YELLOW)
 @app.command()
 def strength(password: str = typer.Argument(..., help="Password yang mau dicek kekuatannya")):
     """Cek kekuatan password"""
